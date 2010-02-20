@@ -1,0 +1,17 @@
+This is the stub for a fun and functional haskell graph library that takes care
+of all the pesky details. I aim to build a simple frontend to various useful
+graph algorithms from other packages.
+
+Examples:
+    Construct a graph from edges:
+        fromEdges [("cat","dog"),("dog","cat"),("pig","pig")]
+    
+    Nodes need not have any edges:
+        addNode "crocoduck" $ fromEdges [("crocodile","duck")]
+
+Todo:
+    weighted graphs
+    graph algorithms (none in here just yet)
+
+Annoying details such as node IDs are hidden away.
+If these details are important, use Data.Graph.
