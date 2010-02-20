@@ -13,6 +13,9 @@ type NodeMap a = B.Bimap NodeId a
 type EdgeMap = M.Map NodeId (S.Set NodeId)
 type Edge a = (a,a)
 
+instance (Eq a, Ord a) => Eq (FGraph a) where
+    x == y = nodes x == nodes y && edges x == edges y
+
 data FGraph a = FGraph {
     nodeMap :: NodeMap a,
     nextNodeId :: NodeId,
@@ -24,6 +27,9 @@ empty = FGraph { nodeMap = B.empty, nextNodeId = 0, edgeMap = M.empty }
 
 fromEdges :: (Eq a, Ord a) => [Edge a] -> FGraph a
 fromEdges = foldl (flip addEdge) empty
+
+fromNodes :: (Eq a, Ord a) => [a] -> FGraph a
+fromNodes = foldl (flip addNode) empty
 
 addEdge :: (Eq a, Ord a) => Edge a -> FGraph a -> FGraph a
 addEdge (n1,n2) g = g''
@@ -43,3 +49,12 @@ addNode n g@FGraph{ nodeMap = nM, nextNodeId = nId } = g'
         (nM',nId') = case B.lookupR n nM of
             Nothing -> (B.insert nId n nM, nId + 1)
             _ -> (nM, nId)
+
+nodes :: Ord a => FGraph a -> [a]
+nodes FGraph{ nodeMap = nM } = B.elems nM
+
+edges :: Ord a => FGraph a -> [Edge a]
+edges FGraph{ edgeMap = eM, nodeMap = nM } = M.foldWithKey f [] eM
+    where
+        f k x acc = x' ++ acc where
+            x' = [ (nM B.! k, nM B.! e) | e <- S.elems x ]

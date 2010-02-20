@@ -12,6 +12,9 @@ Examples:
 Todo:
     weighted graphs
     graph algorithms (none in here just yet)
+    bipartite graph construction and validation
+    adjacency matrices
+    conversion routines between common graph datatypes
 
 Annoying details such as node IDs are hidden away.
 If these details are important, use Data.Graph.
