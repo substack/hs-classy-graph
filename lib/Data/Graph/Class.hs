@@ -1,25 +1,31 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
--- A graph module that takes care of all those pesky details,
--- putting the fun back in functional!
-module Data.Graph.Fun (
-    GraphF, DGraph(..), Edge,
-    empty, fromEdges, addEdge, addNode
+-- A classy graph module that sweeps all those pesky details like integer
+-- indexing under the rug.
+module Data.Graph.Class (
+    Graph(..), GraphD(..), Edge,
 ) where
 
 import qualified Data.Map as M
 import qualified Data.Bimap as B
 import qualified Data.Set as S
 
-type NodeId = Int
-type NodeMap a = B.Bimap NodeId a
-type EdgeMap = M.Map NodeId (S.Set NodeId)
-type Edge a = (a,a)
+type NodeMap a = B.Bimap Vertex a
+type EdgeMap = M.Map Vertex (S.Set Vertex)
 
-class GraphF g a where
+type Edge a = (a,a)
+type Vertex = Int
+
+class Graph g a where
     empty :: g a
+    
+    withEdges :: [Edge a] -> g a -> g a
+    withEdges = flip $ foldl (flip addEdge)
     
     fromEdges :: [Edge a] -> g a
     fromEdges = foldl (flip addEdge) empty
+    
+    withNodes :: [a] -> g a -> g a
+    withNodes = flip $ foldl (flip addNode)
     
     fromNodes :: [a] -> g a
     fromNodes = foldl (flip addNode) empty
@@ -28,43 +34,45 @@ class GraphF g a where
     addNode :: a -> g a -> g a
     
     nodes :: g a -> [a]
+    vertices :: g a -> [Vertex]
     edges :: g a -> [Edge a]
 
 -- | A directed graph
-data DGraph a = DGraph {
+data GraphD a = GraphD {
     nodeMap :: NodeMap a,
-    nextNodeId :: NodeId,
+    nextVertex :: Vertex,
     edgeMap :: EdgeMap
 } deriving Show
 
-instance (Eq a, Ord a) => GraphF DGraph a where
-    empty = DGraph { nodeMap = B.empty, nextNodeId = 0, edgeMap = M.empty }
+instance (Eq a, Ord a) => Graph GraphD a where
+    empty = GraphD { nodeMap = B.empty, nextVertex = 0, edgeMap = M.empty }
     
     addEdge (n1,n2) g = g''
         where
             g' = addNode n2 $ addNode n1 g
             g'' = g' { edgeMap = eM' }
             eM = edgeMap g'
-            eM' = M.insertWith S.union idN1 (S.singleton idN2) eM
+            eM' = M.insertWith S.union v1 (S.singleton v2) eM
             nM = nodeMap g'
-            idN1,idN2 :: NodeId
-            (idN1,idN2) = (nM B.!> n1, nM B.!> n2)
-
-    addNode n g@DGraph{ nodeMap = nM, nextNodeId = nId } = g'
+            (v1,v2) = (nM B.!> n1, nM B.!> n2) :: (Vertex,Vertex)
+    
+    addNode n g@GraphD{ nodeMap = nM, nextVertex = nId } = g'
         where
-            g' = g { nodeMap = nM', nextNodeId = nId' }
+            g' = g { nodeMap = nM', nextVertex = nId' }
             (nM',nId') = case B.lookupR n nM of
                 Nothing -> (B.insert nId n nM, nId + 1)
                 _ -> (nM, nId)
     
-    nodes DGraph{ nodeMap = nM } = B.elems nM
+    vertices GraphD{ nodeMap = nM } = B.keys nM
     
-    edges DGraph{ edgeMap = eM, nodeMap = nM } = M.foldWithKey f [] eM
+    nodes GraphD{ nodeMap = nM } = B.elems nM
+    
+    edges GraphD{ edgeMap = eM, nodeMap = nM } = M.foldWithKey f [] eM
         where
             f k x acc = x' ++ acc where
                 x' = [ (nM B.! k, nM B.! e) | e <- S.elems x ]
 
-instance Ord a => Eq (DGraph a) where
+instance Ord a => Eq (GraphD a) where
     x == y = xN == yN && xE == yE
         where
             (xN,yN) = (S.fromList $ nodes x, S.fromList $ nodes y)
