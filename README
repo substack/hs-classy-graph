@@ -1,20 +1,28 @@
-This is the stub for a fun and functional haskell graph library that takes care
-of all the pesky details. I aim to build a simple frontend to various useful
-graph algorithms from other packages.
+This is a stub for a classy haskell graph class library. The purpose of this
+module is to take care of annoying details like mapping node types onto integer
+vertices, which shouldn't need to be dealt with directly very often. Right now,
+this module provides an instance for a directed graph data type that is built
+around Data.Map for simplicity.
 
 Examples:
-    Construct a graph from edges:
-        fromEdges [("cat","dog"),("dog","cat"),("pig","pig")]
+    import Data.Graph.Class
     
-    Nodes need not have any edges:
-        addNode "crocoduck" $ fromEdges [("crocodile","duck")]
+    -- Construct a graph from edges:
+    fromEdges [("cat","dog"),("dog","cat"),("pig","pig")] :: GraphD String
+    
+    -- or from disconnected nodes:
+    fromNodes $ words "cow pig chicken prawn" :: GraphD String
+    
+    -- which may be connected later:
+    withEdges [("crocoduck","duck"),("crocoduck","crocodile")]
+        $ fromNodes $ words "crocodile duck cow" :: GraphD String
+
+With the GraphD implementation, any nodes mentioned in edges will be implicitly
+added to the pool of nodes and the integer vertex map will be updated
+accordingly.
 
 Todo:
-    weighted graphs
-    graph algorithms (none in here just yet)
-    bipartite graph construction and validation
-    adjacency matrices
+    graph algorithms
     conversion routines between common graph datatypes
-
-Annoying details such as node IDs are hidden away.
-If these details are important, use Data.Graph.
+    weighted graphs
+    adjacency matrices
