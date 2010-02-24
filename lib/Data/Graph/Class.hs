@@ -8,6 +8,7 @@ module Data.Graph.Class (
 import qualified Data.Map as M
 import qualified Data.Bimap as B
 import qualified Data.Set as S
+import Control.Arrow ((&&&))
 
 type NodeMap a = B.Bimap Vertex a
 type EdgeMap = M.Map Vertex (S.Set Vertex)
@@ -32,6 +33,9 @@ class Graph g a where
     
     addEdge :: Edge a -> g a -> g a
     addNode :: a -> g a -> g a
+    
+    rmEdge :: Edge a -> g a -> g a
+    rmNode :: a -> g a -> g a
     
     nodes :: g a -> [a]
     vertices :: g a -> [Vertex]
@@ -63,6 +67,20 @@ instance (Eq a, Ord a) => Graph GraphD a where
                 Nothing -> (B.insert nId n nM, nId + 1)
                 _ -> (nM, nId)
     
+    rmEdge (n1,n2) g@GraphD{ nodeMap = nM } = g { edgeMap = f (edgeMap g) }
+        where
+            f :: EdgeMap -> EdgeMap
+            f eM = case (B.lookupR n1 nM, B.lookupR n2 nM) of
+                (Just v1, Just v2) -> M.adjust (S.delete v2) v1 eM
+                _ -> eM
+    
+    rmNode n g@GraphD{ nodeMap = nM, edgeMap = eM } = g' where
+        g' = case B.lookupR n nM of
+            Just v -> g { nodeMap = B.delete v nM, edgeMap = f v eM }
+            Nothing -> g
+        f :: Vertex -> EdgeMap -> EdgeMap
+        f v eM = M.map (S.delete v) $ M.delete v eM
+    
     vertices GraphD{ nodeMap = nM } = B.keys nM
     
     nodes GraphD{ nodeMap = nM } = B.elems nM
@@ -77,4 +95,3 @@ instance Ord a => Eq (GraphD a) where
         where
             (xN,yN) = (S.fromList $ nodes x, S.fromList $ nodes y)
             (xE,yE) = (S.fromList $ edges x, S.fromList $ edges y)
-
